@@ -65,6 +65,28 @@ const AttributeNameValues = Object.values(Attributes);
 const playerSoftwareVersion = getPlayerVersion();
 const playerSoftwareName = 'mux-video';
 
+const emptyTimeRanges: TimeRanges = Object.freeze({
+  length: 1,
+  start(index: number) {
+    const unsignedIdx = index >>> 0;
+    if (unsignedIdx >= this.length) {
+      throw new DOMException(
+        `Failed to execute 'start' on 'TimeRanges': The index provided (${unsignedIdx}) is greater than or equal to the maximum bound (${this.length}).`
+      );
+    }
+    return 0;
+  },
+  end(index: number) {
+    const unsignedIdx = index >>> 0;
+    if (unsignedIdx >= this.length) {
+      throw new DOMException(
+        `Failed to execute 'end' on 'TimeRanges': The index provided (${unsignedIdx}) is greater than or equal to the maximum bound (${this.length}).`
+      );
+    }
+    return 0;
+  },
+});
+
 class MuxVideoElement extends CustomVideoElement<HTMLVideoElement> implements Partial<MuxMediaProps> {
   static get observedAttributes() {
     return [...AttributeNameValues, ...(CustomVideoElement.observedAttributes ?? [])];
@@ -138,6 +160,23 @@ class MuxVideoElement extends CustomVideoElement<HTMLVideoElement> implements Pa
 
   set errorTranslator(value: ((errorEvent: any) => any) | undefined) {
     this.#errorTranslator = value;
+  }
+
+  get seekable() {
+    const { nativeEl, _hls } = this;
+    if (!_hls || !nativeEl.seekable.length) return nativeEl.seekable;
+    /** @TODO this object doesn't need to be created "on the fly". Consider creating it after a given initialize/teardown or caching it somehow (CJP) */
+    const seekableTimeRanges: TimeRanges = Object.freeze({
+      length: nativeEl.seekable.length,
+      start(index: number) {
+        return nativeEl.seekable.start(index);
+      },
+      end(index: number) {
+        if (index > this.length) return nativeEl.seekable.end(index);
+        return _hls.liveSyncPosition ?? nativeEl.seekable.end(index);
+      },
+    });
+    return seekableTimeRanges;
   }
 
   get src() {
