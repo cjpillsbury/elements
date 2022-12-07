@@ -40,7 +40,6 @@ const toMetadataFromMediaAsset = (mediaAsset: typeof mediaAssetsJSON[0], mediaAs
 const toPlayerPropsFromJSON = (mediaAsset: typeof mediaAssetsJSON[0] | undefined, mediaAssets: typeof mediaAssetsJSON) => {
   const {
     'playback-id': playbackId,
-    // 'stream-type': streamType,
     tokens,
     'custom-domain': customDomain,
     audio,
@@ -48,12 +47,10 @@ const toPlayerPropsFromJSON = (mediaAsset: typeof mediaAssetsJSON[0] | undefined
     placeholder,
   } = mediaAsset ?? {};
   // NOTE: Inferred type is "string" from JSON (CJP)
-  const streamType = mediaAsset?.['stream-type'] as MuxPlayerProps["streamType"];
   const metadata = mediaAsset ? toMetadataFromMediaAsset(mediaAsset, mediaAssets) : undefined;
 
   return {
     playbackId,
-    streamType,
     audio,
     tokens,
     customDomain,
