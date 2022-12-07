@@ -11,7 +11,7 @@ import { html } from './html';
 import { i18n, stylePropsToString } from './utils';
 
 import type { MuxTemplateProps } from './types';
-import { StreamTypes } from '@mux/playback-core';
+import { StreamTypes, StreamTypesOld } from '@mux/playback-core';
 
 const muxTemplate = document.createElement('template');
 if ('innerHTML' in muxTemplate) muxTemplate.innerHTML = muxTheme;
@@ -25,19 +25,23 @@ export const template = (props: MuxTemplateProps) => html`
   ${content(props)}
 `;
 
-const isLive = (props: MuxTemplateProps) => [StreamTypes.LIVE, StreamTypes.LL_LIVE].includes(props.streamType as any);
+const isLive = (props: MuxTemplateProps) =>
+  [StreamTypesOld.LIVE, StreamTypesOld.LL_LIVE].includes(props.streamType as any);
 
 const isLiveOrDVR = (props: MuxTemplateProps) =>
-  [StreamTypes.LIVE, StreamTypes.LL_LIVE, StreamTypes.DVR, StreamTypes.LL_DVR].includes(props.streamType as any);
+  [StreamTypesOld.LIVE, StreamTypesOld.LL_LIVE, StreamTypesOld.DVR, StreamTypesOld.LL_DVR].includes(
+    props.streamType as any
+  );
 
 const getLayout = (props: MuxTemplateProps) => {
-  let layout = '';
-  if (props.audio) layout += 'audio ';
-  if (isLive(props)) layout += 'live';
-  else if (isLiveOrDVR(props)) layout += 'dvr';
-  else layout += props.streamType || 'on-demand';
-  if (!props.audio && props.playerSize) layout += ` ${props.playerSize}`;
-  return layout;
+  const streamTypeStr = !props.dvr ? props.streamType : undefined;
+  const dvrStr = props.dvr ? 'dvr' : undefined;
+  const audioStr = props.audio ? 'audio' : undefined;
+  const playerSizeStr = !props.audio ? props.playerSize : undefined;
+  console.log('getLayout() props', props);
+  console.log(...[audioStr, streamTypeStr, dvrStr, playerSizeStr].filter((x) => x));
+
+  return [audioStr, streamTypeStr, dvrStr, playerSizeStr].filter((x) => x).join(' ');
 };
 
 const getHotKeys = (props: MuxTemplateProps) => {
@@ -92,8 +96,9 @@ export const content = (props: MuxTemplateProps) => html`
       player-software-name="${props.playerSoftwareName ?? false}"
       player-software-version="${props.playerSoftwareVersion ?? false}"
       env-key="${props.envKey ?? false}"
-      stream-type="${props.streamType ?? false}"
       custom-domain="${props.customDomain ?? false}"
+      low-latency="${props.streamType?.startsWith('ll-') ?? false}"
+      dvr="${props.streamType?.includes(':dvr') ?? false}"
       src="${!!props.src
         ? props.src
         : props.playbackId

@@ -1,6 +1,6 @@
 import { toQuery, camelCase, parseJwt } from './utils';
 import type MuxPlayerElement from '.';
-import { StreamTypes } from '@mux/playback-core';
+import { StreamTypesOld } from '@mux/playback-core';
 
 const MUX_VIDEO_DOMAIN = 'mux.com';
 
@@ -117,10 +117,10 @@ export const isInLiveWindow = (el: MuxPlayerElement) => {
   const delta = liveTime - currentTime;
   // The live window is based on whether or not the current playhead is within n segment durations (plus a margin of error)
   // of the live edge (CJP)
-  if (streamType === StreamTypes.LL_LIVE || streamType === StreamTypes.LL_DVR) {
+  if (streamType === StreamTypesOld.LL_LIVE || streamType === StreamTypesOld.LL_DVR) {
     return delta <= LL_LIVE_SEGMENT_SECS * (DEFAULT_HOLDBACK + LIVE_HOLDBACK_MOE);
   }
-  if (streamType === StreamTypes.LIVE || streamType === StreamTypes.DVR) {
+  if (streamType === StreamTypesOld.LIVE || streamType === StreamTypesOld.DVR) {
     return delta <= LIVE_SEGMENT_SECS * (DEFAULT_HOLDBACK + LIVE_HOLDBACK_MOE);
   }
   return false;

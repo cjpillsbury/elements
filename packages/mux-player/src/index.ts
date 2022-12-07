@@ -1,17 +1,19 @@
 import { globalThis, document } from 'shared-polyfills';
 // @ts-ignore
 import { MediaController } from 'media-chrome';
-import MuxVideoElement, { MediaError, Attributes as MuxVideoAttributes } from '@mux/mux-video';
+import MuxVideoElement, { MediaError, Attributes as MuxVideoAttributes, Attributes } from '@mux/mux-video';
 import {
   ValueOf,
   Metadata,
-  StreamTypes,
+  StreamTypesOld,
   PlaybackTypes,
   PlaybackEngine,
   addTextTrack,
   removeTextTrack,
   CmcdTypes,
   CmcdTypeValues,
+  MuxMediaProps,
+  StreamTypes,
 } from '@mux/playback-core';
 import VideoApiElement, { initVideoApi } from './video-api';
 import {
@@ -37,7 +39,7 @@ export type Tokens = {
   storyboard?: string;
 };
 
-const streamTypeValues = Object.values(StreamTypes);
+const streamTypeValues = Object.values(StreamTypesOld);
 
 const SMALL_BREAKPOINT = 700;
 const XSMALL_BREAKPOINT = 300;
@@ -117,6 +119,7 @@ function getProps(el: MuxPlayerElement, state?: any): MuxTemplateProps {
     preferPlayback: el.preferPlayback,
     audio: el.audio,
     streamType: el.streamType,
+    dvr: el.dvr,
     primaryColor: el.primaryColor,
     secondaryColor: el.secondaryColor,
     forwardSeekOffset: el.forwardSeekOffset,
@@ -228,6 +231,13 @@ class MuxPlayerElement extends VideoApiElement {
     this.#monitorLiveWindow();
     this.#userInactive = this.mediaController?.hasAttribute('user-inactive') ?? true;
     this.#setUpCaptionsMovement();
+
+    /** @TODO this is only here to prove out automatic stream type etc. derivation. Should not be merged (CJP) */
+    console.log('has media', !this.media);
+    this.media?.addEventListener('durationchange', () => {
+      console.log('changed!');
+      this.#render();
+    });
   }
 
   #setupCSSProperties() {
@@ -297,7 +307,9 @@ class MuxPlayerElement extends VideoApiElement {
       if (
         (event.target as Element)?.localName === 'media-play-button' &&
         this.streamType &&
-        [StreamTypes.LIVE, StreamTypes.LL_LIVE, StreamTypes.DVR, StreamTypes.LL_DVR].includes(this.streamType as any)
+        [StreamTypesOld.LIVE, StreamTypesOld.LL_LIVE, StreamTypesOld.DVR, StreamTypesOld.LL_DVR].includes(
+          this.streamType as any
+        )
       ) {
         // playback core should handle the seek to live on first play
         if (this.hasPlayed) {
@@ -422,7 +434,7 @@ class MuxPlayerElement extends VideoApiElement {
       // - native fullscreen on iPhones
       return (
         this.streamType &&
-        [StreamTypes.LIVE, StreamTypes.LL_LIVE].includes(this.streamType as any) &&
+        [StreamTypesOld.LIVE, StreamTypesOld.LL_LIVE].includes(this.streamType as any) &&
         !this.secondaryColor &&
         this.offsetWidth >= 800
       );
@@ -454,7 +466,7 @@ class MuxPlayerElement extends VideoApiElement {
           // default safari styles are taller than other browsers
           let offset = isSafari ? -2 : -3;
 
-          if (this.streamType && [StreamTypes.LIVE, StreamTypes.LL_LIVE].includes(this.streamType as any)) {
+          if (this.streamType && [StreamTypesOld.LIVE, StreamTypesOld.LL_LIVE].includes(this.streamType as any)) {
             offset = isSafari ? -1 : -2;
           }
 
@@ -615,7 +627,11 @@ class MuxPlayerElement extends VideoApiElement {
       this.#state = { ...this.#state, ...initialState };
     }
 
-    this.#render({ [toPropName(attrName)]: newValue });
+    if (attrName === Attributes.STREAM_TYPE) {
+      this.#render();
+    } else {
+      this.#render({ [toPropName(attrName)]: newValue });
+    }
   }
 
   get preferCmcd() {
@@ -730,7 +746,9 @@ class MuxPlayerElement extends VideoApiElement {
       this.playbackId &&
       !this.audio &&
       (!this.streamType ||
-        ![StreamTypes.LIVE, StreamTypes.LL_LIVE, StreamTypes.DVR, StreamTypes.LL_DVR].includes(this.streamType as any))
+        ![StreamTypesOld.LIVE, StreamTypesOld.LL_LIVE, StreamTypesOld.DVR, StreamTypesOld.LL_DVR].includes(
+          this.streamType as any
+        ))
     ) {
       return getStoryboardURLFromPlaybackId(this.playbackId, {
         domain: this.customDomain,
@@ -1047,7 +1065,14 @@ class MuxPlayerElement extends VideoApiElement {
    * Get stream type.
    */
   get streamType() {
-    return getVideoAttribute(this, MuxVideoAttributes.STREAM_TYPE);
+    const oldStreamType = this.getAttribute(MuxVideoAttributes.STREAM_TYPE);
+    if (oldStreamType?.includes('live')) return StreamTypes.LIVE;
+    if (oldStreamType?.includes('on-demand')) return StreamTypes.ON_DEMAND;
+    return this.media?.streamType;
+  }
+
+  get streamTypeOld() {
+    return this.getAttribute(MuxVideoAttributes.STREAM_TYPE);
   }
 
   /**
@@ -1055,6 +1080,16 @@ class MuxPlayerElement extends VideoApiElement {
    */
   set streamType(val) {
     this.setAttribute(MuxVideoAttributes.STREAM_TYPE, `${val}`);
+  }
+
+  get dvr() {
+    const oldStreamType = this.getAttribute(MuxVideoAttributes.STREAM_TYPE);
+    if (oldStreamType?.includes(':dvr')) return true;
+    return this.media?.dvr;
+  }
+
+  get lowLatency() {
+    return this.media?.lowLatency ?? this.getAttribute(MuxVideoAttributes.STREAM_TYPE)?.includes('ll-');
   }
 
   /**
@@ -1192,6 +1227,10 @@ class MuxPlayerElement extends VideoApiElement {
 
 export function getVideoAttribute(el: MuxPlayerElement, name: string) {
   return el.media ? el.media.getAttribute(name) : el.getAttribute(name);
+}
+
+export function getVideoProp(el: MuxPlayerElement, name: keyof Omit<MuxMediaProps, 'autoPlay'>) {
+  return el.media?.[name];
 }
 
 /** @TODO Refactor once using `globalThis` polyfills */
