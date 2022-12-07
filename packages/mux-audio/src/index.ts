@@ -4,7 +4,7 @@ import {
   teardown,
   generatePlayerInitTime,
   MuxMediaProps,
-  StreamTypes,
+  StreamTypesOld,
   PlaybackTypes,
   ValueOf,
   toMuxVideoURL,
@@ -221,12 +221,12 @@ class MuxAudioElement extends CustomAudioElement<HTMLAudioElement> implements Pa
     }
   }
 
-  get streamType(): ValueOf<StreamTypes> | undefined {
+  get streamType(): ValueOf<StreamTypesOld> | undefined {
     // getAttribute doesn't know that this attribute is well defined. Should explore extending for MuxVideo (CJP)
-    return (this.getAttribute(Attributes.STREAM_TYPE) as ValueOf<StreamTypes>) ?? undefined;
+    return (this.getAttribute(Attributes.STREAM_TYPE) as ValueOf<StreamTypesOld>) ?? undefined;
   }
 
-  set streamType(val: ValueOf<StreamTypes> | undefined) {
+  set streamType(val: ValueOf<StreamTypesOld> | undefined) {
     // dont' cause an infinite loop
     if (val === this.streamType) return;
 
