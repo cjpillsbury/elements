@@ -31,7 +31,7 @@ export const AutoplayTypes: AutoplayTypes = {
 
 export type Autoplay = boolean | ValueOf<AutoplayTypes>;
 
-export type StreamTypes = {
+export type StreamTypesOld = {
   VOD: 'on-demand';
   ON_DEMAND: 'on-demand';
   LIVE: 'live';
@@ -40,7 +40,7 @@ export type StreamTypes = {
   LL_DVR: 'll-live:dvr';
 };
 
-export const StreamTypes: StreamTypes = {
+export const StreamTypesOld: StreamTypesOld = {
   VOD: 'on-demand',
   ON_DEMAND: 'on-demand',
   LIVE: 'live',
@@ -48,6 +48,14 @@ export const StreamTypes: StreamTypes = {
   DVR: 'live:dvr',
   LL_DVR: 'll-live:dvr',
 };
+
+export type StreamTypes = Pick<StreamTypesOld, 'ON_DEMAND' | 'LIVE'>;
+export const StreamTypes: StreamTypes = {
+  ON_DEMAND: StreamTypesOld.ON_DEMAND,
+  LIVE: StreamTypesOld.LIVE,
+};
+
+export type HlsPlaylistTypes = 'VOD' | 'EVENT' | null | undefined;
 
 export type PlaybackTypes = {
   MSE: 'mse';
@@ -123,11 +131,15 @@ export type MuxMediaPropTypes = {
   playerInitTime: Options['data']['player_init_time'];
   preferPlayback: ValueOf<PlaybackTypes> | undefined;
   type: MediaTypes;
-  streamType: ValueOf<StreamTypes>;
+  /** @TODO remove StreamTypesOld before merge when refactor is done (CJP) */
+  streamType: ValueOf<StreamTypes> | ValueOf<StreamTypesOld>;
+  dvr: boolean | undefined;
+  lowLatency: boolean | undefined;
   startTime: HlsConfig['startPosition'];
   autoPlay?: Autoplay;
   autoplay?: Autoplay;
   preferCmcd: ValueOf<CmcdTypes> | undefined;
+  seekable: TimeRanges;
 };
 
 export type HTMLMediaElementProps = Partial<Pick<HTMLMediaElement, 'src' | 'preload'>>;

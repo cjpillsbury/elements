@@ -4,7 +4,6 @@ import {
   teardown,
   generatePlayerInitTime,
   MuxMediaProps,
-  StreamTypes,
   PlaybackTypes,
   ValueOf,
   toMuxVideoURL,
@@ -13,6 +12,11 @@ import {
   getError,
   CmcdTypes,
   CmcdTypeValues,
+  StreamTypes,
+  getStreamType,
+  getSeekable,
+  getDvr,
+  getLowLatency,
 } from '@mux/playback-core';
 import type { PlaybackCore, PlaybackEngine, Autoplay, ExtensionMimeTypeMap } from '@mux/playback-core';
 import { getPlayerVersion } from './env';
@@ -36,6 +40,8 @@ type AttributeNames = {
   PREFER_PLAYBACK: 'prefer-playback';
   TYPE: 'type';
   STREAM_TYPE: 'stream-type';
+  DVR: 'dvr';
+  LOW_LATENCY: 'low-latency';
   START_TIME: 'start-time';
   PREFER_CMCD: 'prefer-cmcd';
 };
@@ -56,6 +62,8 @@ export const Attributes: AttributeNames = {
   DISABLE_COOKIES: 'disable-cookies',
   TYPE: 'type',
   STREAM_TYPE: 'stream-type',
+  DVR: 'dvr',
+  LOW_LATENCY: 'low-latency',
   START_TIME: 'start-time',
   PREFER_CMCD: 'prefer-cmcd',
 };
@@ -64,28 +72,6 @@ const AttributeNameValues = Object.values(Attributes);
 
 const playerSoftwareVersion = getPlayerVersion();
 const playerSoftwareName = 'mux-video';
-
-const emptyTimeRanges: TimeRanges = Object.freeze({
-  length: 1,
-  start(index: number) {
-    const unsignedIdx = index >>> 0;
-    if (unsignedIdx >= this.length) {
-      throw new DOMException(
-        `Failed to execute 'start' on 'TimeRanges': The index provided (${unsignedIdx}) is greater than or equal to the maximum bound (${this.length}).`
-      );
-    }
-    return 0;
-  },
-  end(index: number) {
-    const unsignedIdx = index >>> 0;
-    if (unsignedIdx >= this.length) {
-      throw new DOMException(
-        `Failed to execute 'end' on 'TimeRanges': The index provided (${unsignedIdx}) is greater than or equal to the maximum bound (${this.length}).`
-      );
-    }
-    return 0;
-  },
-});
 
 class MuxVideoElement extends CustomVideoElement<HTMLVideoElement> implements Partial<MuxMediaProps> {
   static get observedAttributes() {
@@ -163,20 +149,7 @@ class MuxVideoElement extends CustomVideoElement<HTMLVideoElement> implements Pa
   }
 
   get seekable() {
-    const { nativeEl, _hls } = this;
-    if (!_hls || !nativeEl.seekable.length) return nativeEl.seekable;
-    /** @TODO this object doesn't need to be created "on the fly". Consider creating it after a given initialize/teardown or caching it somehow (CJP) */
-    const seekableTimeRanges: TimeRanges = Object.freeze({
-      length: nativeEl.seekable.length,
-      start(index: number) {
-        return nativeEl.seekable.start(index);
-      },
-      end(index: number) {
-        if (index > this.length) return nativeEl.seekable.end(index);
-        return _hls.liveSyncPosition ?? nativeEl.seekable.end(index);
-      },
-    });
-    return seekableTimeRanges;
+    return getSeekable(this.nativeEl) ?? this.nativeEl.seekable;
   }
 
   get src() {
@@ -369,7 +342,7 @@ class MuxVideoElement extends CustomVideoElement<HTMLVideoElement> implements Pa
 
   get streamType(): ValueOf<StreamTypes> | undefined {
     // getAttribute doesn't know that this attribute is well defined. Should explore extending for MuxVideo (CJP)
-    return (this.getAttribute(Attributes.STREAM_TYPE) as ValueOf<StreamTypes>) ?? undefined;
+    return (this.getAttribute(Attributes.STREAM_TYPE) as ValueOf<StreamTypes>) ?? getStreamType(this.nativeEl);
   }
 
   set streamType(val: ValueOf<StreamTypes> | undefined) {
@@ -381,6 +354,25 @@ class MuxVideoElement extends CustomVideoElement<HTMLVideoElement> implements Pa
     } else {
       this.removeAttribute(Attributes.STREAM_TYPE);
     }
+  }
+
+  get dvr(): boolean | undefined {
+    return this.hasAttribute(Attributes.DVR) || getDvr(this.nativeEl);
+  }
+
+  set dvr(val: boolean | undefined) {
+    // dont' cause an infinite loop
+    if (val === this.dvr) return;
+
+    if (val) {
+      this.setAttribute(Attributes.DVR, '');
+    } else {
+      this.removeAttribute(Attributes.DVR);
+    }
+  }
+
+  get lowLatency(): boolean | undefined {
+    return this.hasAttribute(Attributes.LOW_LATENCY) || getLowLatency(this.nativeEl);
   }
 
   get preferPlayback(): ValueOf<PlaybackTypes> | undefined {

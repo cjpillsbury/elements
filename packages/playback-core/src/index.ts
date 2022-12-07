@@ -1,19 +1,25 @@
 import mux, { ErrorEvent } from 'mux-embed';
-import Hls from 'hls.js';
+import Hls, { HlsConfig } from 'hls.js';
 import { MediaError } from './errors';
 import { setupAutoplay } from './autoplay';
 import { setupPreload } from './preload';
 import { setupTracks, addTextTrack, removeTextTrack } from './tracks';
-import { inSeekableRange, toPlaybackIdParts, getType } from './util';
 import {
-  StreamTypes,
+  inSeekableRange,
+  toPlaybackIdParts,
+  getType,
+  toStreamTypeFromPlaylistType,
+  isDvrFromPlaylistType,
+} from './util';
+import {
   PlaybackTypes,
   ExtensionMimeTypeMap,
   CmcdTypes,
-  type ValueOf,
   type PlaybackCore,
   type MuxMediaProps,
   type MuxMediaPropsInternal,
+  HlsPlaylistTypes,
+  StreamTypes,
 } from './types';
 
 export { mux, Hls, MediaError, addTextTrack, removeTextTrack };
@@ -61,6 +67,22 @@ const toVideoId = (props: Partial<MuxMediaPropsInternal>) => {
 
 export const getError = (mediaEl: HTMLMediaElement) => {
   return muxMediaState.get(mediaEl)?.error;
+};
+
+export const getStreamType = (mediaEl: HTMLMediaElement) => {
+  return muxMediaState.get(mediaEl)?.streamType;
+};
+
+export const getDvr = (mediaEl: HTMLMediaElement) => {
+  return muxMediaState.get(mediaEl)?.dvr;
+};
+
+export const getLowLatency = (mediaEl: HTMLMediaElement) => {
+  return muxMediaState.get(mediaEl)?.lowLatency;
+};
+
+export const getSeekable = (mediaEl: HTMLMediaElement) => {
+  return muxMediaState.get(mediaEl)?.seekable ?? mediaEl.seekable;
 };
 
 export const initialize = (props: Partial<MuxMediaPropsInternal>, mediaEl: HTMLMediaElement, core?: PlaybackCore) => {
@@ -137,7 +159,10 @@ function useNative(
 
 export const setupHls = (
   props: Partial<
-    Pick<MuxMediaPropsInternal, 'debug' | 'streamType' | 'type' | 'startTime' | 'metadata' | 'preferCmcd'>
+    Pick<
+      MuxMediaPropsInternal,
+      'debug' | 'streamType' | 'dvr' | 'lowLatency' | 'type' | 'startTime' | 'metadata' | 'preferCmcd'
+    >
   >,
   mediaEl: Pick<HTMLMediaElement, 'canPlayType'>
 ) => {
@@ -153,7 +178,7 @@ export const setupHls = (
       renderTextTracksNatively: false,
       liveDurationInfinity: true,
     };
-    const streamTypeConfig = getStreamTypeConfig(streamType);
+    const streamTypeConfig = getStreamTypeConfig(props);
     const cmcd =
       preferCmcd !== CmcdTypes.NONE
         ? {
@@ -177,24 +202,20 @@ export const setupHls = (
   return undefined;
 };
 
-export const getStreamTypeConfig = (streamType?: ValueOf<StreamTypes>) => {
-  // for regular live videos, set backBufferLength to 8
-  if ([StreamTypes.LIVE, StreamTypes.DVR].includes(streamType as any)) {
-    const liveConfig = {
-      backBufferLength: 8,
-    };
-
-    return liveConfig;
-  }
-
+export const getStreamTypeConfig = (props: Partial<Pick<MuxMediaPropsInternal, 'streamType' | 'lowLatency'>>) => {
   // for LL Live videos, set backBufferLenght to 4 and maxFragLookUpTolerance to 0.001
-  if ([StreamTypes.LL_LIVE, StreamTypes.LL_DVR].includes(streamType as any)) {
-    const liveConfig = {
+  if (props.lowLatency) {
+    return {
       backBufferLength: 4,
       maxFragLookUpTolerance: 0.001,
     };
+  }
 
-    return liveConfig;
+  // for regular live videos, set backBufferLength to 8
+  if (props.streamType === StreamTypes.LIVE) {
+    return {
+      backBufferLength: 8,
+    };
   }
 
   return {};
@@ -296,6 +317,7 @@ export const loadMedia = (
   hls?: Pick<
     Hls,
     | 'config'
+    | 'userConfig'
     | 'on'
     | 'once'
     | 'startLoad'
@@ -326,6 +348,38 @@ export const loadMedia = (
     mediaEl.addEventListener('error', handleNativeError);
     mediaEl.addEventListener('error', handleInternalError);
   } else if (hls && src) {
+    hls.once(Hls.Events.LEVEL_LOADED, (_evt, data) => {
+      const playlistType: HlsPlaylistTypes = data.details.type as HlsPlaylistTypes;
+      const streamType = toStreamTypeFromPlaylistType(playlistType);
+      const dvr = isDvrFromPlaylistType(playlistType);
+      const lowLatency = !!data.details.partList?.length;
+      (muxMediaState.get(mediaEl) ?? {}).streamType = streamType;
+      (muxMediaState.get(mediaEl) ?? {}).dvr = dvr;
+      (muxMediaState.get(mediaEl) ?? {}).lowLatency = lowLatency;
+      if (streamType === StreamTypes.LIVE) {
+        const seekable: TimeRanges = Object.freeze({
+          get length() {
+            return mediaEl.seekable.length;
+          },
+          start(index: number) {
+            return mediaEl.seekable.start(index);
+          },
+          end(index: number) {
+            if (index > this.length) return mediaEl.seekable.end(index);
+            return hls.liveSyncPosition ?? mediaEl.seekable.end(index);
+          },
+        });
+        (muxMediaState.get(mediaEl) ?? {}).seekable = seekable;
+        if (lowLatency) {
+          hls.config.backBufferLength = hls.userConfig.backBufferLength ?? 4;
+          hls.config.maxFragLookUpTolerance = hls.userConfig.maxFragLookUpTolerance ?? 0.001;
+        } else {
+          hls.config.backBufferLength = hls.userConfig.backBufferLength ?? 8;
+        }
+      }
+      const detail = { streamType, dvr, lowLatency };
+      mediaEl.dispatchEvent(new CustomEvent('streamtypechange', { detail }));
+    });
     hls.on(Hls.Events.ERROR, (_event, data) => {
       // if (data.fatal) {
       //   switch (data.type) {
