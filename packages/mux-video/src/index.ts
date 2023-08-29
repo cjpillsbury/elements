@@ -33,19 +33,26 @@ import type {
 } from '@mux/playback-core';
 import { getPlayerVersion } from './env';
 // this must be imported after playback-core for the polyfill to be included
-import 'castable-video';
+// import 'castable-video';
 import { CustomMediaMixin, Events as VideoEvents } from 'custom-media-element';
-import { MediaTracksMixin } from 'media-tracks';
+// import { MediaTracksMixin } from 'media-tracks';
 
 // Must mutate so the added events are available in custom-media-element.
 VideoEvents.push('castchange', 'entercast', 'leavecast');
 
-const CustomVideoElement = MediaTracksMixin(
-  CustomMediaMixin(globalThis.HTMLElement, {
-    tag: 'video',
-    is: 'castable-video',
-  })
-);
+const CustomVideoElement = CustomMediaMixin(globalThis.HTMLElement, {
+  tag: 'video',
+  is: undefined as unknown as string,
+  // is: 'castable-video',
+});
+// const CustomVideoElement = MediaTracksMixin(
+//   CustomMediaMixin(globalThis.HTMLElement, {
+//     tag: 'video',
+//     is: undefined as unknown as string,
+//     // is: 'castable-video',
+//   })
+// );
+// const CustomVideoElement = globalThis.HTMLElement;
 
 /** @TODO make the relationship between name+value smarter and more deriveable (CJP) */
 type AttributeNames = {
@@ -95,7 +102,8 @@ const playerSoftwareName = 'mux-video';
 
 class MuxVideoElement extends CustomVideoElement implements Partial<MuxMediaProps> {
   static get observedAttributes() {
-    return [...AttributeNameValues, ...(CustomVideoElement.observedAttributes ?? [])];
+    return [...AttributeNameValues, ...(CustomVideoElement?.observedAttributes ?? [])];
+    // return [...AttributeNameValues];
   }
 
   #core?: PlaybackCore;
@@ -603,16 +611,16 @@ class MuxVideoElement extends CustomVideoElement implements Partial<MuxMediaProp
     }
   }
 
-  connectedCallback(): void {
-    super.connectedCallback?.();
-    if (this.nativeEl && this.src && !this.#core) {
-      this.#requestLoad();
-    }
-  }
+  // connectedCallback(): void {
+  //   super.connectedCallback?.();
+  //   if (this.nativeEl && this.src && !this.#core) {
+  //     this.#requestLoad();
+  //   }
+  // }
 
-  disconnectedCallback(): void {
-    this.unload();
-  }
+  // disconnectedCallback(): void {
+  //   this.unload();
+  // }
 }
 
 type MuxVideoElementType = typeof MuxVideoElement;

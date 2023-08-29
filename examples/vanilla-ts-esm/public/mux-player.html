@@ -5,11 +5,12 @@
     <title>&lt;mux-player&gt; example</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <link rel="stylesheet" href="./styles.css">
-    <script
+    <!-- <script
       defer
       src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"
-    ></script>
-    <script type="module" src="./dist/mux-player.js"></script>
+    ></script> -->
+    <!-- <script type="module" src="./dist/mux-player.js"></script> -->
+    <script type="module" src="./dist/mux-video.js"></script>
     <style>
       mux-player {
         display: block;
@@ -42,18 +43,43 @@
         </a>
       </div>
     </header>
-
-    <mux-player
-      stream-type="on-demand"
-      playback-id="23s11nz72DsoN657h4314PjKKjsF2JG33eBQQt6B95I"
-    ></mux-player>
-
-    <!-- <mux-player
-      stream-type="live:dvr"
-      playback-id="v69RSHhFelSm4701snP22dYz2jICy4E4FUyk02rW4gxRM"
-      title="My amazing video"
-    ></mux-player> -->
+    <div>
+      <button id="add-players">Add Players</button>
+      <button id="remove-players">Remove Players</button>
+    </div>
 
     <a href="../">Browse Elements</a>
+    <script>
+      // const playerElName = 'mux-player';
+      const playerElName = 'mux-video';
+      const addPlayer = () => {
+        const playerEl = document.createElement(playerElName);
+        playerEl.defaultMuted = true;
+        playerEl.autoplay = true;
+        playerEl.playbackId = '23s11nz72DsoN657h4314PjKKjsF2JG33eBQQt6B95I';
+
+        document.querySelector('body').append(playerEl);
+      };
+
+      const removePlayer = () => {
+        const playerEl = document.querySelector(playerElName);
+        playerEl?.remove();
+
+      };
+
+      const addPlayers = (count = 20) => {
+        console.log('adding players');
+        Array.from({ length: count }).forEach(addPlayer);
+      };
+
+      const removeAllPlayers = () => {
+        while (document.querySelector(playerElName)) {
+          removePlayer();
+        }
+      };
+
+      document.querySelector('#add-players').addEventListener('click', () => addPlayers());
+      document.querySelector('#remove-players').addEventListener('click', () => removeAllPlayers());
+    </script>
   </body>
 </html>

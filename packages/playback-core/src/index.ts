@@ -306,7 +306,7 @@ export const initialize = (props: Partial<MuxMediaPropsInternal>, mediaEl: HTMLM
   metadata.video_id = video_id;
   props.metadata = metadata;
 
-  muxMediaState.set(mediaEl as HTMLMediaElement, {});
+  // muxMediaState.set(mediaEl as HTMLMediaElement, {});
   const nextHlsInstance = setupHls(props, mediaEl);
   setupMux(props, mediaEl, nextHlsInstance);
   loadMedia(props, mediaEl, nextHlsInstance);
@@ -638,7 +638,7 @@ export const loadMedia = (
     });
     mediaEl.addEventListener('error', handleInternalError);
 
-    setupMediaTracks(props as HTMLMediaElement, hls);
+    // setupMediaTracks(props as HTMLMediaElement, hls);
     setupTextTracks(mediaEl, hls);
 
     hls.attachMedia(mediaEl);
