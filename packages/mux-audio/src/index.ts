@@ -17,7 +17,7 @@ import {
 import type { PlaybackCore, PlaybackEngine, ExtensionMimeTypeMap } from '@mux/playback-core';
 import { getPlayerVersion } from './env';
 // this must be imported after playback-core for the polyfill to be included
-import { CustomAudioElement, Events as AudioEvents } from 'custom-media-element';
+import { CustomMediaMixin, Events as AudioEvents } from 'custom-media-element';
 
 /** @TODO make the relationship between name+value smarter and more deriveable (CJP) */
 type AttributeNames = {
@@ -50,6 +50,12 @@ const AttributeNameValues = Object.values(Attributes);
 
 const playerSoftwareVersion = getPlayerVersion();
 const playerSoftwareName = 'mux-audio';
+
+const CustomAudioElement = CustomMediaMixin(globalThis.HTMLElement, {
+  tag: 'audio',
+  is: undefined as unknown as string,
+  // is: 'castable-video',
+});
 
 class MuxAudioElement extends CustomAudioElement implements Partial<MuxMediaProps> {
   static get observedAttributes() {

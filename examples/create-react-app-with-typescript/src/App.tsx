@@ -2,10 +2,10 @@ import React from "react";
 import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages";
 import MuxVideoPage from "./pages/MuxVideo";
-import MuxAudioPage from "./pages/MuxAudio";
-import MuxPlayerPage from "./pages/MuxPlayer";
-import MuxPlayerLazyPage from "./pages/MuxPlayerLazy";
-import MuxUploaderPage from "./pages/MuxUploader";
+// import MuxAudioPage from "./pages/MuxAudio";
+// import MuxPlayerPage from "./pages/MuxPlayer";
+// import MuxPlayerLazyPage from "./pages/MuxPlayerLazy";
+// import MuxUploaderPage from "./pages/MuxUploader";
 
 function App() {
   return (
@@ -31,10 +31,10 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="MuxVideo" element={<MuxVideoPage />} />
-          <Route path="MuxAudio" element={<MuxAudioPage />} />
+          {/* <Route path="MuxAudio" element={<MuxAudioPage />} />
           <Route path="MuxPlayer" element={<MuxPlayerPage />} />
           <Route path="MuxPlayerLazy" element={<MuxPlayerLazyPage />} />
-          <Route path="MuxUploader" element={<MuxUploaderPage />} />
+          <Route path="MuxUploader" element={<MuxUploaderPage />} /> */}
         </Routes>
       </Router>
     </>
