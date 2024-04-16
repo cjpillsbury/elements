@@ -154,8 +154,10 @@ export type MuxMediaPropTypes = {
   minResolution: MinResolutionValue;
   renditionOrder: RenditionOrderValue;
   customDomain: string;
+  drmToken?: string;
   tokens: Partial<{
     playback: string;
+    drm: string;
     storyboard: string;
     thumbnail: string;
   }>;
