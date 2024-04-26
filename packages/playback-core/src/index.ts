@@ -660,8 +660,8 @@ export const setupNativeFairplayDRM = (props: Partial<MuxMediaPropsInternal>, me
       const message = await new Promise<MediaKeyMessageEvent['message']>((resolve) => {
         session.addEventListener(
           'message',
-          (event) => {
-            resolve(event.message);
+          (messageEvent) => {
+            resolve(messageEvent.message);
           },
           { once: true }
         );
