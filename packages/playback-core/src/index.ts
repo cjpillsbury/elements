@@ -37,6 +37,8 @@ import type {
 } from './types';
 import { StreamTypes, PlaybackTypes, ExtensionMimeTypeMap, CmcdTypes, HlsPlaylistTypes, MediaTypes } from './types';
 // import { MediaKeySessionContext } from 'hls.js';
+// @ts-ignore
+import fairplayTestCertificate from './fairplay-test-certificate.cer';
 export {
   mux,
   Hls,
@@ -603,9 +605,11 @@ export const getDRMConfig = (
 };
 
 export const getAppCertificate = async (appCertificateUrl: string) => {
-  const resp = await fetch(appCertificateUrl);
-  const body = await resp.arrayBuffer();
-  return body;
+  console.log('this is the license cert', fairplayTestCertificate.buffer);
+  return Promise.resolve(fairplayTestCertificate.buffer);
+  // const resp = await fetch(appCertificateUrl);
+  // const body = await resp.arrayBuffer();
+  // return body;
 };
 
 export const getLicenseKey = async (message: ArrayBuffer, licenseServerUrl: string) => {
@@ -615,8 +619,22 @@ export const getLicenseKey = async (message: ArrayBuffer, licenseServerUrl: stri
     // headers: new Headers({ 'Content-type': 'application/json' }),
     body: message,
   });
-  const keyBuffer = await licenseResponse.arrayBuffer();
-  return new Uint8Array(keyBuffer);
+  console.log('got key response!', licenseResponse);
+  const base64String = await licenseResponse.text();
+  const binaryStr = atob(base64String);
+  const keyUint8Array = new Uint8Array(binaryStr.length);
+  keyUint8Array.forEach((_, i) => {
+    keyUint8Array[i] = binaryStr.charCodeAt(i);
+  });
+  return keyUint8Array;
+  // const keyBuffer = await licenseResponse.arrayBuffer();
+  // console.log('response body arrayBuffer!', keyBuffer);
+  // return new Uint8Array(keyBuffer);
+  // NOTE: This is how it works for Widevine! May need "forking paths"
+  // console.log('got key response!', licenseResponse);
+  // const keyBuffer = await licenseResponse.arrayBuffer();
+  // console.log('response body arrayBuffer!', keyBuffer);
+  // return new Uint8Array(keyBuffer);
 };
 
 /** @TODO Pick<> relevant props here (CJP) */
@@ -624,6 +642,7 @@ export const setupNativeFairplayDRM = (props: Partial<MuxMediaPropsInternal>, me
   /** @TODO Defer applying src until app certificate is set (CJP) */
   const onFpEncrypted = async (event: MediaEncryptedEvent) => {
     try {
+      console.log('MediaEncryptedEvent', event);
       const initDataType = event.initDataType;
       if (initDataType !== 'skd') {
         console.error(`Received unexpected initialization data type "${initDataType}"`);
@@ -644,8 +663,11 @@ export const setupNativeFairplayDRM = (props: Partial<MuxMediaPropsInternal>, me
         const keys = await access.createMediaKeys();
 
         const fairPlayAppCert = await getAppCertificate(toAppCertURL(props, 'fairplay'));
+        console.log('about to set server cert');
         await keys.setServerCertificate(fairPlayAppCert);
+        console.log('set server cert, about to set media keys');
         await mediaEl.setMediaKeys(keys);
+        console.log('set media keys');
       }
 
       const initData = event.initData;
@@ -656,11 +678,13 @@ export const setupNativeFairplayDRM = (props: Partial<MuxMediaPropsInternal>, me
       }
 
       const session = (mediaEl.mediaKeys as MediaKeys).createSession();
+      console.log('about to generate key request from session');
       session.generateRequest(initDataType, initData);
       const message = await new Promise<MediaKeyMessageEvent['message']>((resolve) => {
         session.addEventListener(
           'message',
           (messageEvent) => {
+            console.log('got message! event', messageEvent);
             resolve(messageEvent.message);
           },
           { once: true }
@@ -668,9 +692,12 @@ export const setupNativeFairplayDRM = (props: Partial<MuxMediaPropsInternal>, me
       });
 
       const response = await getLicenseKey(message, toLicenseKeyURL(props, 'fairplay'));
+      console.log('about to update session with key response');
       await session.update(response);
+      console.log('updated session with key response');
       return session;
     } catch (e) {
+      console.log('error updating session with key response', e);
       /** @TODO Improve error signaling here (CJP) */
       console.error(`Could not start encrypted playback due to exception "${e}"`);
     }

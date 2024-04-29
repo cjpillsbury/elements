@@ -353,6 +353,7 @@ function MuxPlayerPage({ location }: Props) {
         theme={state.theme}
         envKey={state.envKey}
         metadata={state.metadata}
+        // preferPlayback="mse"
         // Test _hlsConfig for MuxPlayer (react) (Note: This also indirectly tests <mux-player> & <mux-video>)
         // _hlsConfig={{
         //   startLevel: 2,
