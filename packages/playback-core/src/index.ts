@@ -615,26 +615,12 @@ export const getAppCertificate = async (appCertificateUrl: string) => {
 export const getLicenseKey = async (message: ArrayBuffer, licenseServerUrl: string) => {
   const licenseResponse = await fetch(licenseServerUrl, {
     method: 'POST',
-    /** @TODO determine appropriate content-type (CJP) */
-    // headers: new Headers({ 'Content-type': 'application/json' }),
+    headers: new Headers({ 'Content-Type': 'application/octet-stream' }),
     body: message,
   });
-  console.log('got key response!', licenseResponse);
-  const base64String = await licenseResponse.text();
-  const binaryStr = atob(base64String);
-  const keyUint8Array = new Uint8Array(binaryStr.length);
-  keyUint8Array.forEach((_, i) => {
-    keyUint8Array[i] = binaryStr.charCodeAt(i);
-  });
-  return keyUint8Array;
-  // const keyBuffer = await licenseResponse.arrayBuffer();
-  // console.log('response body arrayBuffer!', keyBuffer);
-  // return new Uint8Array(keyBuffer);
-  // NOTE: This is how it works for Widevine! May need "forking paths"
-  // console.log('got key response!', licenseResponse);
-  // const keyBuffer = await licenseResponse.arrayBuffer();
-  // console.log('response body arrayBuffer!', keyBuffer);
-  // return new Uint8Array(keyBuffer);
+  const keyBuffer = await licenseResponse.arrayBuffer();
+  console.log('response body arrayBuffer!', keyBuffer);
+  return new Uint8Array(keyBuffer);
 };
 
 /** @TODO Pick<> relevant props here (CJP) */
