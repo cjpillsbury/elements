@@ -605,17 +605,24 @@ export const getDRMConfig = (
 };
 
 export const getAppCertificate = async (appCertificateUrl: string) => {
-  console.log('this is the license cert', fairplayTestCertificate.buffer);
-  return Promise.resolve(fairplayTestCertificate.buffer);
-  // const resp = await fetch(appCertificateUrl);
-  // const body = await resp.arrayBuffer();
-  // return body;
+  try {
+    console.log('app cert fetching');
+    const resp = await fetch(appCertificateUrl);
+    console.log('app cert fetched, arrayBuffering');
+    const body = await resp.arrayBuffer();
+    console.log('app cert fetched, arrayBuffered');
+    return body;
+  } catch (err) {
+    // console.error('app cert fetch failed', err);
+    // console.log('this is the license cert', fairplayTestCertificate.buffer);
+    // return Promise.resolve(fairplayTestCertificate.buffer);
+  }
 };
 
 export const getLicenseKey = async (message: ArrayBuffer, licenseServerUrl: string) => {
   const licenseResponse = await fetch(licenseServerUrl, {
     method: 'POST',
-    headers: new Headers({ 'Content-Type': 'application/octet-stream' }),
+    // headers: new Headers({ 'Content-Type': 'application/octet-stream' }),
     body: message,
   });
   const keyBuffer = await licenseResponse.arrayBuffer();
@@ -717,7 +724,7 @@ export const toAppCertURL = (
 ) => {
   // NOTE: Interim domain for testing
   const domain = 'gcp-us-west1-vos1.staging.mux.com';
-  return `https://license.${domain}/app_certificate/${scheme}/${playbackId}?token=${token}`;
+  return `https://license.${domain}/appcert/${scheme}/${playbackId}?token=${token}`;
 };
 
 export const isMuxVideoSrc = ({
