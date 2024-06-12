@@ -124,6 +124,8 @@ class MuxUploaderProgressElement extends globalThis.HTMLElement {
       this.#uploaderEl.addEventListener('reset', this.onReset);
       this.#uploaderEl.addEventListener('progress', this.onProgress);
       this.#uploaderEl.addEventListener('success', this.onSuccess);
+      this.toggleAttribute('upload-in-progress', this.#uploaderEl.hasAttribute('upload-in-progress'));
+      this.toggleAttribute('upload-complete', this.#uploaderEl.hasAttribute('upload-complete'));
     }
   }
 
@@ -137,6 +139,7 @@ class MuxUploaderProgressElement extends globalThis.HTMLElement {
   };
 
   onProgress = (e: Event) => {
+    console.log('progress changed!');
     // @ts-ignore
     const percent = e.detail;
     this.progressBar?.setAttribute('aria-valuenow', `${Math.floor(percent)}`);
