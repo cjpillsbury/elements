@@ -41,7 +41,7 @@
   "license": "MIT",
   "scripts": {
     "clean": "shx rm -rf dist/ && shx rm -rf src/polyfills",
-    "lint": "eslint src/ --ext .js,.jsx,.ts,.tsx",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint src/ --ext .js,.jsx,.ts,.tsx",
     "test": "web-test-runner **/*test.js --port 8006 --coverage --config test/web-test-runner.config.mjs --root-dir ../..",
     "posttest": "replace 'SF:src/' 'SF:packages/mux-active-viewer-counts/src/' coverage/lcov.info --silent",
     "dev:iife": "yarn build:iife --watch=forever",
