@@ -397,6 +397,7 @@ class MuxPlayerElement extends VideoApiElement implements MuxPlayerElement {
     });
 
     /** @TODO Tests for user inactive crud. remove before merging (CJP) */
+    /** @Wesley Here were some other places I tried monitoring to see if/when relevant events were firing+bubbling */
     // this.media?.addEventListener('pointermove', () => {
     //   console.log('POINTER MOVING MEDIA');
     // });

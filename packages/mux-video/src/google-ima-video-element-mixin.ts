@@ -28,6 +28,12 @@ export const GoogleIMAVideoMixin = (superclass: typeof CustomVideoElement) => {
   line-height: 0;
 }
 
+/**
+ * @Wesley I did try adding pointer-events: auto to some of these elements in the structure to no avail.
+ * I also tried doing some basic event listeners for pointer events here just to see if they got triggered.
+ * I did not, however, try "reaching in" to the iframe when it is added to the #adContainer and mucking around
+ * with its styles.
+ */
 #mainContainer {
   position: relative;
 }
